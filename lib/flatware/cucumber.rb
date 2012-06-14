@@ -5,16 +5,27 @@ module Flatware
     class Formatter < ::Cucumber::Formatter::Progress
       @@all_summaries = []
 
-      def after_features(*args)
-        io = @io
-        @io = StringIO.new
-        super
-        @@all_summaries.push @io.tap(&:rewind).read
-        @io = io
+      def after_step_result(*)
+        Sink.push capture { super }
+      end
+
+      def after_features(*)
+        @@all_summaries.push capture { super }
       end
 
       def self.all_summaries
         @@all_summaries
+      end
+
+      private
+
+      def capture(&block)
+        io = @io
+        @io = StringIO.new
+        block.call
+        @io.tap(&:rewind).read.tap do
+          @io = io
+        end
       end
     end
 

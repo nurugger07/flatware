@@ -20,6 +20,7 @@ module Flatware
 
       def dispatch!
         die
+        Sink.start_server
 
         features = Cucumber.features
 
