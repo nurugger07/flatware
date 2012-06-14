@@ -24,16 +24,18 @@ module Flatware
         features = Cucumber.features
 
         dispatched = 0
+
         while request = dispatch.recv
           if request != 'hi'
             # request is a test result
             dispatched -= 1
-            print request
           end
           feature = features.pop
           if feature
             dispatch.send feature
             dispatched += 1
+            puts "Not yet dispatched: #{features.length}"
+            puts "       In progress: #{dispatched}"
           else
             dispatch.send 'seppuku'
           end
@@ -44,10 +46,6 @@ module Flatware
 
         dispatch.close
         context.close
-
-        puts "\n\n"
-        puts "2 scenarios (2 passed)"
-        puts "2 steps (2 passed)"
       end
 
       private

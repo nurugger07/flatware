@@ -39,10 +39,8 @@ module Flatware
               if message == 'seppuku'
                 quit = true
               else
-                out = err = StringIO.new
-                Cucumber.run message, out, err
-                result = out.tap(&:rewind).read
-                dispatch.send result
+                Cucumber.run message, $stdout, $stderr
+                dispatch.send 'done'
               end
             end
           end
