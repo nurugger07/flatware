@@ -46,6 +46,7 @@ module Flatware
           end
           dispatch.close
           die.close
+          puts Cucumber::Formatter.all_summaries
         end
       end
     end

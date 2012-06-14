@@ -3,7 +3,18 @@ require 'cucumber/formatter/progress'
 module Flatware
   module Cucumber
     class Formatter < ::Cucumber::Formatter::Progress
-      def after_features(features)
+      @@all_summaries = []
+
+      def after_features(*args)
+        io = @io
+        @io = StringIO.new
+        super
+        @@all_summaries.push @io.tap(&:rewind).read
+        @io = io
+      end
+
+      def self.all_summaries
+        @@all_summaries
       end
     end
 
