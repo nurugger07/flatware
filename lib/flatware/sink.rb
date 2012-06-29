@@ -25,8 +25,10 @@ module Flatware
       end
 
       def listen
+        old_handler = trap('INT', 'SYSTEM_DEFAULT')
         until done?
           message = socket.recv
+          trap('INT', old_handler)
           log 'printing'
           case (result = Marshal.load message)
           when Cucumber::StepResult

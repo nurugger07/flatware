@@ -69,6 +69,11 @@ Given 'the following scenario:' do |scenario|
   write_file "features/step_definitions/flunky_steps.rb", <<-RB
     Then('flunk') { false.should be_true }
   RB
+  write_file "features/step_definitions/sleep_steps.rb", <<-RB
+    Then /^sleep (\\d+)$/ do |time|
+      sleep time.to_i
+    end
+  RB
 
   write_file "features/flunk.feature", <<-FEATURE
   Feature: flunk
