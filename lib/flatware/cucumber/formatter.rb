@@ -13,7 +13,8 @@ module Flatware
     STATUSES = FORMATS.keys
 
     class Formatter
-      def initialize(*)
+      def initialize(step_mother, *)
+        @step_mother = step_mother
       end
 
       def scenario_name(keyword, name, file_colon_line, source_indent)
@@ -22,6 +23,82 @@ module Flatware
 
       def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background)
         Sink.push StepResult.new status, exception, @current_scenario
+      end
+
+      def before_outline_table(outline_table)
+        @outline_table = outline_table
+      end
+
+      def after_outline_table(outline_table)
+        @outline_table = nil
+      end
+
+      def before_table_row(table_row)
+        if example_row? table_row
+          @step_counts = STATUSES.inject({}) do |counts, status|
+            counts.merge status => step_mother.steps(status).size
+          end
+        end
+      end
+
+      def after_table_row(table_row)
+        if example_row? table_row
+          # this will determine if the outline row was a failure.
+          Sink.push ExampleRowResult.new table_row
+          # the cucumber progress formatter doesn't use this: it's oblivious.
+          # it provides no feedback until the summary is printed, which is not
+          # congruous with our design goal of always reporting status as soon
+          # as it is known.
+          #
+          # POLYMORPHIC INTERFACE FOR RESULT MESSAGES
+          #
+          class Result
+            # a string to print as a progress message. will be blank for
+            # example row results.
+            def progress
+            end
+
+            # an array of steps. empty for example cells. one for regular
+            # steps. many for example row results.
+            # these can be summed by the summary code.
+            def steps
+              []
+            end
+          end
+
+        end
+      end
+
+      def table_cell_value(_, status)
+        # Sink.push ExampleCellResult.new status if example_cell? status
+      end
+
+      private
+
+      attr_reader :step_mother
+
+      def example_row?(table_row)
+        outline_table? and not table_header_row? table_row
+      end
+
+      def example_cell?(status)
+        outline_table? and not table_header_cell? status
+      end
+
+      def table_header_cell?(status)
+        status == :skipped_param
+      end
+
+      def outline_table?
+        !!@outline_table
+      end
+
+      def table_header_row?(table_row)
+        table_row.failed?
+      rescue ::Cucumber::Ast::OutlineTable::ExampleRow::InvalidForHeaderRowError
+        true
+      else
+        false
       end
     end
 
@@ -79,7 +156,7 @@ module Flatware
       end
 
       def print_step_counts
-        io.puts "#{pluralize 'step',steps.size} (#{count_summary steps})"
+        io.puts "#{pluralize 'step', steps.size} (#{count_summary steps})"
       end
 
       def pluralize(word, number)
