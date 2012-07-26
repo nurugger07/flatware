@@ -13,11 +13,8 @@ module Flatware
     def dispatch!
       return Flatware.close if jobs.empty?
       fireable.until_fired dispatch do |request|
-        if job = jobs.pop
-          dispatch.send Marshal.dump job
-        else
-          dispatch.send 'seppuku'
-        end
+        job = jobs.pop || 'seppuku'
+        dispatch.send Marshal.dump job
       end
     end
 

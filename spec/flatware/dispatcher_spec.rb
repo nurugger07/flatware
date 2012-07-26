@@ -1,10 +1,12 @@
 require 'spec_helper'
 
-describe Flatware::Worker do
-  context 'when a worker is started' do
-    let! :pid do
-      fork { described_class.listen! }
+describe Flatware::Dispatcher do
+  context 'when a dispatcher is started' do
+    before :all do
+      @pid = fork { described_class.start [:job] }
     end
+
+    attr_reader :pid
 
     def child_pids
       `ps -o ppid -o pid`.split("\n")[1..-1].map do |l|
@@ -24,22 +26,15 @@ describe Flatware::Worker do
 
       let! :die do
         context.socket(ZMQ::PUB).tap do |s|
-          s.bind 'ipc://die'
+          s.bind Flatware::Fireable::DIE_PORT
         end
       end
 
-      let! :task do
-        context.socket(ZMQ::REP).tap do |s|
-          s.bind 'ipc://dispatch'
-        end
-      end
-
-      before { task.recv }
-      after { [die, task, context].each &:close }
+      after { [die, context].each &:close }
 
       context 'when the publisher sends the die message' do
 
-        it 'the worker exits' do
+        it 'the dispatcher exits' do
           die.send 'seppuku'
           Process.waitall
           child_pids.should_not include pid

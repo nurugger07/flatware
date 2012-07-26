@@ -7,26 +7,32 @@ module Flatware
     end
 
     def self.spawn(worker_count)
-      worker_count.times do |i|
+      @pids = worker_count.times.map do |i|
         fork do
+          $0 = "flatware worker #{i}"
           ENV['TEST_ENV_NUMBER'] = i.to_s
           listen!
         end
       end
     end
 
+    def self.waitall
+      @pids.each { |pid| Process.wait pid, Process::WNOHANG | Process::WUNTRACED }
+    end
+
     def listen
       time = Benchmark.realtime do
-        fireable
         report_for_duty
-        fireable.until_fired task do |work|
+        while work = task.recv
           job = Marshal.load work
           log 'working!'
+          next if job == 'seppuku'
           Cucumber.run job.id, job.args
           Sink.finished job
           report_for_duty
           log 'waiting'
         end
+        Flatware.close
       end
       log time
     end
@@ -35,10 +41,6 @@ module Flatware
 
     def log(*args)
       Flatware.log *args
-    end
-
-    def fireable
-      @fireable ||= Fireable.new
     end
 
     def task

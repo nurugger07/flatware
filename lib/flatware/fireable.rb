@@ -1,8 +1,9 @@
 module Flatware
   class Fireable
+    DIE_PORT = 'ipc://die'
     def initialize
       @die = Flatware.socket(ZMQ::SUB).tap do |die|
-        die.connect 'ipc://die'
+        die.connect DIE_PORT
         die.setsockopt ZMQ::SUBSCRIBE, ''
       end
     end

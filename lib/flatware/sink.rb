@@ -66,9 +66,10 @@ module Flatware
 
       def before_firing(&block)
         die = Flatware.socket(ZMQ::PUB).tap do |socket|
-          socket.bind 'ipc://die'
+          socket.bind Fireable::DIE_PORT
         end
         block.call
+        Worker.waitall
         die.send 'seppuku'
       end
 
